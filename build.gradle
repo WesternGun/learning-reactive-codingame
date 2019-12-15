@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+repositories {
+    mavenCentral()
+    maven { url "http://central.maven.org/maven2" }
+}
+
+dependencies {
+    compileOnly "org.projectlombok:lombok:1.18.8"
+    testCompileOnly "org.projectlombok:lombok:1.18.8"
+    annotationProcessor "org.projectlombok:lombok:1.18.8"
+    testAnnotationProcessor "org.projectlombok:lombok:1.18.8"
+    testImplementation "org.testcontainers:junit-jupiter:1.11.1"
+    compile group: 'io.projectreactor', name: 'reactor-core', version: '3.3.1.RELEASE'
+}
