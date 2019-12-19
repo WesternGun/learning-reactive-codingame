@@ -54,3 +54,5 @@ flux.subscribe(System.out::println);
 ```
 I expected the code above to emit "fooA" but it didn't, why?
 (The result of the `map` operator is a new Flux which was discarded)
+
+colleague does something here
