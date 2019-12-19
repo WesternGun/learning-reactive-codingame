@@ -1,4 +1,5 @@
 (This is the code I did in https://www.codingame.com/playgrounds/929/reactive-programming-with-reactor-3, left here as notes. I hope I can help someone same as me struggling with Reactive :) )
+foobar
 
 # Introduction to Reactive Programming
 Reactor 3 is a library built around the Reactive Streams specification, bringing the paradigm of Reactive Programming on the JVM.
