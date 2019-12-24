@@ -1,0 +1,102 @@
+<configuration scan="true">
+
+    <!-- App name used in log messages. -->
+    <springProperty scope="context" name="productName" source="spring.application.name"/>
+    <!-- The current environment is retrieved from the profiles. -->
+    <springProperty scope="context" name="env" source="spring.profiles.active"/>
+
+    <!-- The log directory to use. Default in /var/log but /tmp is used for default and test profiles.
+    You can override this using the LOG_DIR environment variable. -->
+    <property name="LOG_DIRECTORY" value="${LOG_DIR:-/var/log}"/>
+    <springProfile name="default,test,local,itest">
+        <property name="LOG_DIRECTORY" value="/tmp"/>
+    </springProfile>
+
+    <!-- Unified pattern used for local stdout writes. -->
+    <property name="UNIFIED_PATTERN"
+              value="[ENV=${env:-UNDEFINED}] [productName=${productName:-UNDEFINED}] [%date{yyyy-MM-dd'T'HH:mm:ss.SSSXXX, UTC}] [%level] [MSG=[%thread] %logger{36} - %msg %ex][TRACE=%X{X-B3-TraceId:-}] [SPAN=%X{X-B3-SpanId:-}]%n"/>
+
+    <!--
+    Start of the async configuration, shared by console and file asynchronous appenders
+    See https://logback.qos.ch/manual/appenders.html#AsyncAppender
+-->
+    <springProperty scope="context"
+                    name="ASYNC_QUEUE_SIZE"
+                    source="logging.async.queueSize"
+                    defaultValue="256"/>
+    <springProperty scope="context"
+                    name="ASYNC_DISCARDING_THRESHOLD"
+                    source="logging.async.discardingThreshold"
+                    defaultValue="-1"/>
+    <springProperty scope="context"
+                    name="ASYNC_INCLUDE_CALLER_DATA"
+                    source="logging.async.includeCallerData"
+                    defaultValue="false"/>
+    <springProperty scope="context"
+                    name="ASYNC_MAX_FLUSH_TIME"
+                    source="logging.async.maxFlushTime"
+                    defaultValue="1000"/>
+    <springProperty scope="context"
+                    name="ASYNC_NEVER_BLOCK"
+                    source="logging.async.neverBlock"
+                    defaultValue="false"/>
+
+    <!-- The pattern used for JSON logs (stdout or files) -->
+    <property name="JSON_PATTERN"
+              value="{
+ &quot;host&quot;: &quot;${HOSTNAME}&quot;,
+ &quot;message&quot;: &quot;%message&quot;,
+ &quot;timestamp&quot;: &quot;%date{yyyy-MM-dd&apos;T&apos;HH:mm:ss.SSSXXX, UTC}&quot;,
+ &quot;productName&quot;: &quot;${productName:-UNDEFINED}&quot;,
+ &quot;env&quot;: &quot;${env:-UNDEFINED}&quot;,
+ &quot;severity&quot;: &quot;%level&quot;,
+ &quot;trace&quot;: &quot;%X{X-B3-TraceId:-}&quot;,
+ &quot;span&quot;: &quot;%X{X-B3-SpanId:-}&quot;,
+ &quot;thread&quot;: &quot;%thread&quot;,
+ &quot;class&quot;: &quot;%logger{36}&quot;,
+ &quot;type&quot;: &quot;APPLICATION&quot;
+}%n"/>
+
+
+    <!-- Creation of the stdout appender. -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <level>severity</level>
+                <version>[ignore]</version>
+                <levelValue>[ignore]</levelValue>
+            </fieldNames>
+            <provider class="net.logstash.logback.composite.loggingevent.LoggingEventPatternJsonProvider">
+                <pattern>${JSON_PATTERN}</pattern>
+            </provider>
+        </encoder>
+        <springProfile name="default,test,local,itest">
+            <encoder>
+                <pattern>${UNIFIED_PATTERN}</pattern>
+            </encoder>
+        </springProfile>
+    </appender>
+
+    <!-- We use an async appender, the configuration from the properties is injected here. -->
+    <appender name="ASYNC_STDOUT_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>${ASYNC_QUEUE_SIZE}</queueSize>
+        <discardingThreshold>${ASYNC_DISCARDING_THRESHOLD}</discardingThreshold>
+        <includeCallerData>${ASYNC_INCLUDE_CALLER_DATA}</includeCallerData>
+        <maxFlushTime>${ASYNC_MAX_FLUSH_TIME}</maxFlushTime>
+        <neverBlock>${ASYNC_NEVER_BLOCK}</neverBlock>
+        <appender-ref ref="STDOUT"/>
+    </appender>
+
+    <!-- Configure the Sentry appender, overriding the logging threshold to the WARN level -->
+    <appender name="Sentry" class="io.sentry.logback.SentryAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC_STDOUT_APPENDER"/>
+        <appender-ref ref="Sentry"/>
+    </root>
+</configuration>
