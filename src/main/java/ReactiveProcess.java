@@ -1,3 +1,4 @@
+import domain.User;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,7 +46,7 @@ public class ReactiveProcess {
 
     // TODO Capitalize the users username, firstName and lastName using #asyncCapitalizeUser
     Flux<User> asyncCapitalizeMany(Flux<User> flux) {
-        return flux.flatMap(this::asyncCapitalizeUser); // flatten the Flux<Mono<User>> to Flux<User>
+        return flux.flatMap(this::asyncCapitalizeUser); // flatten the Flux<Mono<domain.User>> to Flux<domain.User>
     }
 
 

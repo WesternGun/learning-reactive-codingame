@@ -1,10 +1,9 @@
+import domain.User;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -43,7 +42,7 @@ public class StepVerifierUsage {
 
 //========================================================================================
 
-    // TODO Use StepVerifier to check that the flux parameter emits a User with "swhite"username
+    // TODO Use StepVerifier to check that the flux parameter emits a domain.User with "swhite"username
     // and another one with "jpinkman" then completes successfully.
     void expectSkylerJesseComplete(Flux<User> flux) {
         StepVerifier.create(flux)
