@@ -26,19 +26,28 @@ public class BackPressureExample {
      */
     ReactiveRepository<User> repository = new ReactiveUserRepository();
 
-//========================================================================================
+    //========================================================================================
     /*
-    The demand can be tuned in the StepVerifier as well, by using the relevant parameter to create and withVirtualTime for the initial request, then chaining in thenRequest(long) in your expectations for further requests.
+    The demand can be tuned in the StepVerifier as well, by using the relevant parameter to create and
+    withVirtualTime for the initial request, then chaining in thenRequest(long) in your expectations for further
+    requests.
 
-In this first example, create a StepVerifier that produces an initial unbounded demand and verifies 4 values to be received, before completion. This is equivalent to the way you've been using StepVerifier so far.
+    In this first example, create a StepVerifier that produces an initial unbounded demand and verifies 4 values to be
+    received, before completion. This is equivalent to the way you've been using StepVerifier so far.
      */
     // TODO Create a StepVerifier that initially requests all values and expect 4 values to be received
     StepVerifier requestAllExpectFour(Flux<User> flux) {
         return StepVerifier.create(flux).thenRequest(4).thenCancel();
     }
 
-//========================================================================================
+    //========================================================================================
+    /*
+    Next we will request values one by one: for that you need an initial request, but also a second single request
+    after you've received and asserted the first element.
 
+    Without more request, the source will never complete unless you cancel it. This can be done instead of the terminal
+    expectations by using .thenCancel().
+     */
     // TODO Create a StepVerifier that initially requests 1 value and expects domain.User.SKYLER
     //  then requests another value and expects domain.User.JESSE.
     StepVerifier requestOneExpectSkylerThenRequestOneExpectJesse(Flux<User> flux) {
@@ -50,17 +59,57 @@ In this first example, create a StepVerifier that produces an initial unbounded 
     }
 
 //========================================================================================
+    /*
+    A note on debugging
+How to check that the previous sequence was requested one by one, and that a cancellation happened?
 
-    // TODO Return a Flux with all users stored in the repository that prints automatically logs for all Reactive Streams signals
+It's important to be able to debug reactive APIs, so in the next example we will make use of the log operator to know exactly what happens in term of signals and events.
+
+Use the repository to get a Flux of all users, then apply a log to it. Observe in the console below how the underlying test requests it, and the other events like subscribe, onNext...
+     */
+    // TODO Return a Flux with all users stored in the repository that prints automatically logs for all Reactive
+    //  Streams signals
     Flux<User> fluxWithLog() {
         return Flux.from(repository.findAll())
                 .log();
+        /*
+        2020-02-21 13:16:51 [main] INFO  reactor.Flux.Zip.1 - onSubscribe(FluxZip.ZipCoordinator)
+2020-02-21 13:16:51 [main] INFO  reactor.Flux.Zip.1 - request(1)
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - onNext(Person{username='swhite', firstname='Skyler', lastname='White'})
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - request(1)
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - onNext(Person{username='jpinkman', firstname='Jesse', lastname='Pinkman'})
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - request(2)
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - onNext(Person{username='wwhite', firstname='Walter', lastname='White'})
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - onNext(Person{username='sgoodman', firstname='Saul', lastname='Goodman'})
+2020-02-21 13:16:51 [parallel-1] INFO  reactor.Flux.Zip.1 - onComplete()
+         */
     }
 
 //========================================================================================
+    /*
+    If you want to perform custom actions without really modifying the elements in the sequence, you can use the "side effect" methods that start with doOn.
 
-    // TODO Return a Flux with all users stored in the repository that prints "Starring:" on subscribe, "firstname lastname" for all values and "The end!" on complete
+For example, if you want to print "Starting:" upon subscription, use doOnSubscribe.
+
+Each doOn method takes a relevant callback representing the custom action for the corresponding event.
+
+Note that you should not block or invoke operations with latency in these callbacks (which is also true of other
+operator callbacks like map): it's more for quick operations.
+
+Go ahead an modify the first two methods in this exercise in order to get some insight into their sequences using log and doOnXXX.
+     */
+    // TODO Return a Flux with all users stored in the repository that prints "Starring:" on subscribe, "firstname
+    //  lastname" for all values and "The end!" on complete
     Flux<User> fluxWithDoOnPrintln() {
-        return null;
+        return Flux.from(repository.findAll())
+                .doOnSubscribe(user -> {
+                    System.out.println("Starring: ");
+                })
+                .doOnEach(userSignal -> {
+                    System.out.println(userSignal.get().getFirstname() + " " + userSignal.get().getLastname());
+                })
+                .doOnComplete(() -> {
+                    System.out.println("The end!");
+                });
     }
 }
